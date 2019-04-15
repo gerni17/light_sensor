@@ -1,6 +1,7 @@
-Header Header
-int
-int
-int
-int 
-int
+Header header
+time stamp
+int32 r
+int32 g
+int32 b
+int32 lux
+int32 temp
