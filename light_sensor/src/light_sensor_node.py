@@ -38,16 +38,13 @@ rospy.init_node('light_sensor_node', anonymous=False)
 msg_light_sensor = LightSensor()
 sensor_pub = rospy.Publisher('sensor_data', LightSensor, queue_size=1)
 
-<<<<<<< HEAD:light_sensor/src/light_sensor.py
-=======
 #parameter results from sensor calibration:
 #deslux = [0,0,138.6,166.6,95.4,204.4,163.7,200.6]
->>>>>>> 38b6f29a3fa84de8cb9e143aeaa0bd9ec4d286ae:light_sensor/src/light_sensor_node.py
 
 count = 0
 tcs = Adafruit_TCS34725.TCS34725(integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
 
-r = rospy.Rate(10) # 10hz
+rate = rospy.Rate(10) # 10hz
 
 while not rospy.is_shutdown():
 	#turn off LED
@@ -77,22 +74,11 @@ while not rospy.is_shutdown():
 	msg_light_sensor.g = g
 	msg_light_sensor.b = b
 	msg_light_sensor.lux = lux
-	msg_light_sensor.temp = temp
+	msg_light_sensor.temp = color_temp
 
 	sensor_pub.publish(msg_light_sensor)
 
-<<<<<<< HEAD:light_sensor/src/light_sensor.py
-#except KeyboardInterrupt:
-try: 
-	talker()
-except rospy.ROSInterruptException:
-	tcs.disable()
-	pass
-
-
-=======
-	r.sleep()
+	rate.sleep()
 
 # Disable sensor
 tcs.disable()
->>>>>>> 38b6f29a3fa84de8cb9e143aeaa0bd9ec4d286ae:light_sensor/src/light_sensor_node.py

@@ -1,5 +1,5 @@
 <package format="2">
-  <name>lightsensor</name>
+  <name>light_sensor</name>
   <version>0.0.1</version>
   <description>
   This package should run in the lightsensor container.
@@ -55,7 +55,7 @@
  <exec_depend>roscpp</exec_depend>
  <exec_depend>rospy</exec_depend>
  <exec_depend>std_msgs</exec_depend>
- <run_depend>message_runtime</run_depend>
+ <exec_depend>message_runtime</exec_depend>
  <!--<exec_depend>feature_visual_odometry</exec_depend> -->
 
 

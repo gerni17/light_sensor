@@ -14,15 +14,16 @@ COPY requirements.txt .
 
 RUN python -m pip install -r requirements.txt
 
-#Copy python file
+#Copy the package
 
-COPY light_sensor.py .
-
-ENTRYPOINT [ "python" ]
+RUN mkdir -p /catkin-ws/src
+RUN /bin/bash -c "source /opt/ros/kinetic/setup.bash; cd /catkin-ws/; catkin_make"
+COPY light_sensor /catkin-ws/src/light_sensor
+RUN /bin/bash -c "source /catkin-ws/devel/setup.bash; cd /catkin-ws/; catkin_make"
 
 RUN [ "cross-build-end" ]
 
-CMD [ "light_sensor.py" ]
+CMD /bin/bash -c "source /catkin-ws/devel/setup.bash; rosrun light_sensor light_sensor_node.py " ]
 
 
 
