@@ -21,12 +21,10 @@ Use one of the following constants:
 
 """
 import rospy
-import light_senso.msg 
+from light_sensor.msg import LightSensor 
 import time
 from Adafruit_GPIO import I2C
-tca = I2C.get_i2c_device(address=0x70)
 import RPi.GPIO as GPIO
-#import xlsxwriter #only used for writing stuff to worksheet
 import Adafruit_TCS34725
 import smbus
 
@@ -36,64 +34,51 @@ GPIO.setup(18,GPIO.OUT)
 GPIO.output(18,GPIO.LOW)#turn off LED
 
 #ROS-Publications
-rospy.init_node('light_sensor', anonymous=True, disable_rostime=False)
-msg_light_sensor = light_sensor()
-sensor_pub = rospy.Publisher('light_sensor', light_sensor, queue_size=50)
-
-
-
-
+rospy.init_node('light_sensor_node', anonymous=False)
+msg_light_sensor = LightSensor()
+sensor_pub = rospy.Publisher('sensor_data', LightSensor, queue_size=1)
 
 #parameter results from sensor calibration:
 #deslux = [0,0,138.6,166.6,95.4,204.4,163.7,200.6]
-#try:
-count = 0
 
-# Stop the program after 10'000 measurements, just for safety.
+count = 0
+tcs = Adafruit_TCS34725.TCS34725(integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
+
+r = rospy.Rate(10) # 10hz
+
 while not rospy.is_shutdown():
 	#turn off LED
 	if count > 100:
 		GPIO.output(18,GPIO.LOW)#turn off LED
-#parameter results from sensor calibration:
 	count = count + 1
 
-
-
-	tcs = Adafruit_TCS34725.TCS34725(integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
-
-# Read R, G, B, C color data from the sensor.
+	# Read R, G, B, C color data from the sensor.
 	r, g, b, c = tcs.get_raw_data()
-# Calulate color temp
+	# Calulate color temp
 	color_temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
-# Calculate lux out of RGB measurements.
+	# Calculate lux out of RGB measurements.
 	lux = Adafruit_TCS34725.calculate_lux(r, g, b)
 
-	print("r =", r)
-	print("g =", g)
-	print("b =", b)
-	print("temp [k]=", color_temp)
+	print("r = ", r)
+	print("g = ", g)
+	print("b = ", b)
+	print("temp [k]= ", color_temp)
 	print("lux = ", lux)
 
-	#Publish to topic 
-	msg_light_sensor.header
-	msg_light_sensor.r = msg.r
-	msg_light_sensor.g = msg.g
-	msg_light_sensor.b = msg.b
-	msg_light_sensor.lux = msg.lux
-	msg_light_sensor.temp = msg.temp
+	# Publish to topic 
+	
+	# TODO: add other things to header
+	msg_light_sensor.header.stamp = rospy.Time.now()
+
+	msg_light_sensor.r = r
+	msg_light_sensor.g = g
+	msg_light_sensor.b = b
+	msg_light_sensor.lux = lux
+	msg_light_sensor.temp = temp
+
 	sensor_pub.publish(msg_light_sensor)
-	rospy.get_time()
-	#Log everthing
-	rospy.loginfomsg_light_sensor()
 
+	r.sleep()
 
-
-
-#except KeyboardInterrupt:
-try: 
-	talker()
-except rospy.ROSInterruptException:
-	pass
-
-# Check whther disable sensor
+# Disable sensor
 tcs.disable()
