@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
 The orientation is how you write them
-Plugins on raspberry pi: o o 1 o o 5
-                         2 3 4 o o o
+Plugins on raspberry pi: o o 1 o o 
+                         2 3 4 o 5 
                          
 Plugins on tcs34725:     o 1 2 4 3 o 5
 
@@ -42,7 +42,6 @@ sensor_pub = rospy.Publisher('sensor_data', LightSensor, queue_size=1)
 #deslux = [0,0,138.6,166.6,95.4,204.4,163.7,200.6]
 
 count = 0
-tcs = Adafruit_TCS34725.TCS34725(integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
 
 rate = rospy.Rate(10) # 10hz
 
@@ -51,6 +50,8 @@ while not rospy.is_shutdown():
 	if count > 100:
 		GPIO.output(18,GPIO.LOW)#turn off LED
 	count = count + 1
+
+	tcs = Adafruit_TCS34725.TCS34725(integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
 
 	# Read R, G, B, C color data from the sensor.
 	r, g, b, c = tcs.get_raw_data()
