@@ -44,9 +44,7 @@ sensor_pub = rospy.Publisher('light_sensor', light_sensor, queue_size=50)
 
 
 
-#parameter results from sensor calibration:
-#deslux = [0,0,138.6,166.6,95.4,204.4,163.7,200.6]
-#try:
+
 count = 0
 
 # Stop the program after 10'000 measurements, just for safety.
@@ -93,7 +91,7 @@ while not rospy.is_shutdown():
 try: 
 	talker()
 except rospy.ROSInterruptException:
+	tcs.disable()
 	pass
 
-# Check whther disable sensor
-tcs.disable()
+

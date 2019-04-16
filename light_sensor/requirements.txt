@@ -1,0 +1,3 @@
+Adafruit_TCS34725
+RPi.GPIO
+Adafruit_GPIO
