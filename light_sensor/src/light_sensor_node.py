@@ -38,6 +38,8 @@ rospy.init_node('light_sensor_node', anonymous=False)
 msg_light_sensor = LightSensor()
 sensor_pub = rospy.Publisher('sensor_data', LightSensor, queue_size=1)
 
+tcs = Adafruit_TCS34725.TCS34725(integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
+
 #parameter results from sensor calibration:
 #deslux = [0,0,138.6,166.6,95.4,204.4,163.7,200.6]
 
@@ -50,8 +52,6 @@ while not rospy.is_shutdown():
 	if count > 100:
 		GPIO.output(18,GPIO.LOW)#turn off LED
 	count = count + 1
-
-	tcs = Adafruit_TCS34725.TCS34725(integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
 
 	# Read R, G, B, C color data from the sensor.
 	r, g, b, c = tcs.get_raw_data()
