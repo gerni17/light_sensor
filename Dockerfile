@@ -23,7 +23,7 @@ RUN /bin/bash -c "source /catkin-ws/devel/setup.bash; cd /catkin-ws/; catkin_mak
 
 RUN [ "cross-build-end" ]
 
-CMD /bin/bash -c "source /catkin-ws/devel/setup.bash; rosrun light_sensor light_sensor_node.py " ]
+CMD /bin/bash -c "source /catkin-ws/devel/setup.bash; roslaunch light_sensor light_sensor.launch veh:=$HOSTNAME" ]
 
 
 

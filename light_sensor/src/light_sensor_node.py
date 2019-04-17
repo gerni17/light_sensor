@@ -36,9 +36,11 @@ GPIO.output(18,GPIO.LOW)#turn off LED
 #ROS-Publications
 rospy.init_node('light_sensor_node', anonymous=False)
 msg_light_sensor = LightSensor()
-sensor_pub = rospy.Publisher('sensor_data', LightSensor, queue_size=1)
+sensor_pub = rospy.Publisher('~sensor_data', LightSensor, queue_size=1)
 
-tcs = Adafruit_TCS34725.TCS34725(integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
+tcs = Adafruit_TCS34725.TCS34725( \
+		integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, \
+		gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
 
 #parameter results from sensor calibration:
 #deslux = [0,0,138.6,166.6,95.4,204.4,163.7,200.6]
@@ -57,6 +59,14 @@ while not rospy.is_shutdown():
 	r, g, b, c = tcs.get_raw_data()
 	# Calulate color temp
 	color_temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
+	
+	if color_temp == None:
+		tcs = Adafruit_TCS34725.TCS34725( \
+				integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, \
+				gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
+		rate.sleep()
+		continue
+	
 	# Calculate lux out of RGB measurements.
 	lux = Adafruit_TCS34725.calculate_lux(r, g, b)
 
@@ -70,6 +80,7 @@ while not rospy.is_shutdown():
 	
 	# TODO: add other things to header
 	msg_light_sensor.header.stamp = rospy.Time.now()
+	msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
 
 	msg_light_sensor.r = r
 	msg_light_sensor.g = g
