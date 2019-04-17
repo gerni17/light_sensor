@@ -46,15 +46,13 @@ tcs = Adafruit_TCS34725.TCS34725( \
 #deslux = [0,0,138.6,166.6,95.4,204.4,163.7,200.6]
 
 count = 0
-
-rate = rospy.Rate(10) # 10hz
+mean_lux = 0
+mean_temp = 0
+rate = rospy.Rate(20) # 10hz
 
 while not rospy.is_shutdown():
-	#turn off LED
-	if count > 100:
-		GPIO.output(18,GPIO.LOW)#turn off LED
 	count = count + 1
-
+	
 	# Read R, G, B, C color data from the sensor.
 	r, g, b, c = tcs.get_raw_data()
 	# Calulate color temp
@@ -67,28 +65,32 @@ while not rospy.is_shutdown():
 		rate.sleep()
 		continue
 	
-	# Calculate lux out of RGB measurements.
 	lux = Adafruit_TCS34725.calculate_lux(r, g, b)
 
-	print("r = ", r)
-	print("g = ", g)
-	print("b = ", b)
-	print("temp [k]= ", color_temp)
-	print("lux = ", lux)
+	mean_lux = (mean_lux + lux)/count
+	mean_temp = (mean_temp + color_temp)/count
 
-	# Publish to topic 
-	
-	# TODO: add other things to header
-	msg_light_sensor.header.stamp = rospy.Time.now()
-	msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
+	# Calculate lux out of RGB measurements.
+	if count % 20 == 0:
+		print("r = ", r)
+		print("g = ", g)
+		print("b = ", b)
+		print("temp [k]= ", mean_temp)
+		print("lux = ", mean_lux)
 
-	msg_light_sensor.r = r
-	msg_light_sensor.g = g
-	msg_light_sensor.b = b
-	msg_light_sensor.lux = lux
-	msg_light_sensor.temp = color_temp
+		# Publish to topic 
+		
+		# TODO: add other things to header
+		msg_light_sensor.header.stamp = rospy.Time.now()
+		msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
 
-	sensor_pub.publish(msg_light_sensor)
+		msg_light_sensor.r = r
+		msg_light_sensor.g = g
+		msg_light_sensor.b = b
+		msg_light_sensor.lux = mean_lux
+		msg_light_sensor.temp = mean_temp
+
+		sensor_pub.publish(msg_light_sensor)
 
 	rate.sleep()
 
