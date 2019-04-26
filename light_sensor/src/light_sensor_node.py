@@ -39,59 +39,46 @@ msg_light_sensor = LightSensor()
 sensor_pub = rospy.Publisher('~sensor_data', LightSensor, queue_size=1)
 
 tcs = Adafruit_TCS34725.TCS34725( \
-		integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, \
-		gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
+		integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_700MS, \
+		gain=Adafruit_TCS34725.TCS34725_GAIN_1X)
 
-#parameter results from sensor calibration:
-#deslux = [0,0,138.6,166.6,95.4,204.4,163.7,200.6]
+
 
 count = 0
-mean_lux = 0
-mean_temp = 0
-rate = rospy.Rate(20) # 10hz
+lux = 0
+
+color_temp = 0
+rate = rospy.Rate(10/7) # 10hz
 
 while not rospy.is_shutdown():
 	count = count + 1
-	
+
 	# Read R, G, B, C color data from the sensor.
 	r, g, b, c = tcs.get_raw_data()
 	# Calulate color temp
-	color_temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
-	
-	if color_temp == None:
-		tcs = Adafruit_TCS34725.TCS34725( \
-				integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_50MS, \
-				gain=Adafruit_TCS34725.TCS34725_GAIN_4X)
-		rate.sleep()
-		continue
-	
-	lux = Adafruit_TCS34725.calculate_lux(r, g, b)
-
-	mean_lux = (mean_lux + lux)/count
-	mean_temp = (mean_temp + color_temp)/count
+	temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
+	lux = 0.5 * Adafruit_TCS34725.calculate_lux(r, g, b)
 
 	# Calculate lux out of RGB measurements.
-	if count % 20 == 0:
-		print("r = ", r)
-		print("g = ", g)
-		print("b = ", b)
-		print("temp [k]= ", mean_temp)
-		print("lux = ", mean_lux)
+	print("r = ", r)
+	print("g = ", g)
+	print("b = ", b)
+	print("temp [k]= ", temp)
+	print("lux = ", lux)
 
-		# Publish to topic 
-		
-		# TODO: add other things to header
-		msg_light_sensor.header.stamp = rospy.Time.now()
-		msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
+	# Publish to topic 
+	
+	# TODO: add other things to header
+	msg_light_sensor.header.stamp = rospy.Time.now()
+	msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
 
-		msg_light_sensor.r = r
-		msg_light_sensor.g = g
-		msg_light_sensor.b = b
-		msg_light_sensor.lux = mean_lux
-		msg_light_sensor.temp = mean_temp
+	msg_light_sensor.r = r
+	msg_light_sensor.g = g
+	msg_light_sensor.b = b
+	msg_light_sensor.lux = lux
+	msg_light_sensor.temp = temp
 
-		sensor_pub.publish(msg_light_sensor)
-
+	sensor_pub.publish(msg_light_sensor)
 	rate.sleep()
 
 # Disable sensor
