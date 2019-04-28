@@ -27,6 +27,8 @@ from Adafruit_GPIO import I2C
 import RPi.GPIO as GPIO
 import Adafruit_TCS34725
 import smbus
+import yaml
+import os.path
 from duckietown_utils import get_duckiefleet_root
 
 
@@ -35,7 +37,7 @@ class LightSensorNode(object):
 	def __init__(self):
 		#Get node name and vehicle name
 		self.node_name = rospy.get_name()
-		self.veh_name = node_name.split("/")[1]
+		self.veh_name = self.node_name.split("/")[1]
 
 		##GPIO setup
 		#Choose BCM or BOARD numbering schemes
