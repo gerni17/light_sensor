@@ -8,11 +8,11 @@ RUN pip install --upgrade pip
 
 RUN apt-get install python-smbus
 RUN apt-get install i2c-tools
-#RUN i2cdetect -y 1
+
 
 COPY requirements.txt .
 
-RUN python -m pip install -r requirements.txt
+RUN python -m pip3 install -r requirements.txt
 
 #Copy the package
 

@@ -21,7 +21,7 @@ Use one of the following constants:
 
 """
 import rospy
-from light_sensorM.msg import LightSensorM 
+from light_sensor.msg import LightSensorM 
 import time
 from Adafruit_GPIO import I2C
 import RPi.GPIO as GPIO
@@ -41,15 +41,15 @@ class LightSensorNode(object):
 
 		##GPIO setup
 		#Choose BCM or BOARD numbering schemes
-		self.GPIO.setmode(GPIO.BCM)  
-		self.GPIO.setwarnings(False)
-		self.GPIO.setup(18,GPIO.OUT)
+		GPIO.setmode(GPIO.BCM)  
+		GPIO.setwarnings(False)
+		GPIO.setup(18,GPIO.OUT)
 		#turn off LED
-		self.GPIO.output(18,GPIO.LOW)
+		GPIO.output(18,GPIO.LOW)
 
 
 		#Set integrationtime and gain
-		tcs = Adafruit_TCS34725.TCS34725( \
+		self.tcs = Adafruit_TCS34725.TCS34725( \
 				integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_700MS, \
 				gain=Adafruit_TCS34725.TCS34725_GAIN_1X)
 
@@ -60,10 +60,11 @@ class LightSensorNode(object):
 
 		#ROS-Publications
 		self.msg_light_sensor = LightSensorM()
+		self.get_lux(self.msg_light_sensor)
 		self.sensor_pub = rospy.Publisher('~sensor_data', LightSensorM, queue_size=1)
+		
 
-
-	def get_lux(self):
+	def get_lux(self, msg_light_sensor):
 		
 		count = 0
 		lux = 0
@@ -75,7 +76,7 @@ class LightSensorNode(object):
 		count = count + 1
 
 		# Read R, G, B, C color data from the sensor.
-		r, g, b, c = tcs.get_raw_data()
+		r, g, b, c = self.tcs.get_raw_data()
 		# Calulate color temp
 		temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
 		#Calculate lux and multiply it with gain
@@ -95,6 +96,7 @@ class LightSensorNode(object):
 		msg_light_sensor.header.stamp = rospy.Time.now()
 		msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
 
+
 		msg_light_sensor.r = r
 		msg_light_sensor.g = g
 		msg_light_sensor.b = b
@@ -105,7 +107,7 @@ class LightSensorNode(object):
 		#rate.sleep()
 	
 	def getFilePath(self, name):
-		return get_duckiefleet_root() + 'calibrations/light-sensor/' + name + ".yaml"
+		return (get_duckiefleet_root()+'/calibrations/light-sensor/' + name + ".yaml")
     
 	def readParamFromFile(self):
 		#Check file existance
@@ -127,7 +129,7 @@ class LightSensorNode(object):
 		if yaml_dict is None:
         	# Empty yaml file
 			return
-        
+		param_name = "gain"
 		param_value = yaml_dict.get(param_name)
 		if param_name is not None:
 			rospy.set_param("~"+param_name, param_value)
