@@ -21,65 +21,126 @@ Use one of the following constants:
 
 """
 import rospy
-from light_sensor.msg import LightSensor 
+from light_sensorM.msg import LightSensorM 
 import time
 from Adafruit_GPIO import I2C
 import RPi.GPIO as GPIO
 import Adafruit_TCS34725
 import smbus
-
-GPIO.setmode(GPIO.BCM)  # choose BCM or BOARD numbering schemes
-GPIO.setwarnings(False)
-GPIO.setup(18,GPIO.OUT)
-GPIO.output(18,GPIO.LOW)#turn off LED
-
-#ROS-Publications
-rospy.init_node('light_sensor_node', anonymous=False)
-msg_light_sensor = LightSensor()
-sensor_pub = rospy.Publisher('~sensor_data', LightSensor, queue_size=1)
-
-tcs = Adafruit_TCS34725.TCS34725( \
-		integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_700MS, \
-		gain=Adafruit_TCS34725.TCS34725_GAIN_1X)
+from duckietown_utils import get_duckiefleet_root
 
 
+class LightSensorNode(object):
 
-count = 0
-lux = 0
+	def __init__(self):
+		#Get node name and vehicle name
+		self.node_name = rospy.get_name()
+		self.veh_name = node_name.split("/")[1]
 
-color_temp = 0
-rate = rospy.Rate(10) # 10hz
+		##GPIO setup
+		#Choose BCM or BOARD numbering schemes
+		self.GPIO.setmode(GPIO.BCM)  
+		self.GPIO.setwarnings(False)
+		self.GPIO.setup(18,GPIO.OUT)
+		#turn off LED
+		self.GPIO.output(18,GPIO.LOW)
 
-while not rospy.is_shutdown():
-	count = count + 1
 
-	# Read R, G, B, C color data from the sensor.
-	r, g, b, c = tcs.get_raw_data()
-	# Calulate color temp
-	temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
-	lux = 0.5 * Adafruit_TCS34725.calculate_lux(r, g, b)
+		#Set integrationtime and gain
+		tcs = Adafruit_TCS34725.TCS34725( \
+				integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_700MS, \
+				gain=Adafruit_TCS34725.TCS34725_GAIN_1X)
 
-	# Calculate lux out of RGB measurements.
-	print("r = ", r)
-	print("g = ", g)
-	print("b = ", b)
-	print("temp [k]= ", temp)
-	print("lux = ", lux)
+		#Set parameter
+		self.readParamFromFile()
+		#Set local gain using yam
+		self.gain = self.setup_parameter("gain", 0.5)
 
-	# Publish to topic 
+		#ROS-Publications
+		self.msg_light_sensor = LightSensorM()
+		self.sensor_pub = rospy.Publisher('~sensor_data', LightSensorM, queue_size=1)
+
+
+	def get_lux(self):
+		
+		count = 0
+		lux = 0
+		color_temp = 0
+
+		#rate = rospy.Rate(10) # 10hz
+
 	
-	# TODO: add other things to header
-	msg_light_sensor.header.stamp = rospy.Time.now()
-	msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
+		count = count + 1
 
-	msg_light_sensor.r = r
-	msg_light_sensor.g = g
-	msg_light_sensor.b = b
-	msg_light_sensor.lux = lux
-	msg_light_sensor.temp = temp
+		# Read R, G, B, C color data from the sensor.
+		r, g, b, c = tcs.get_raw_data()
+		# Calulate color temp
+		temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
+		#Calculate lux and multiply it with gain
+		lux = Adafruit_TCS34725.calculate_lux(r, g, b)
 
-	sensor_pub.publish(msg_light_sensor)
-	rate.sleep()
 
-# Disable sensor
-tcs.disable()
+		# Calculate lux out of RGB measurements.
+		print("r = ", r)
+		print("g = ", g)
+		print("b = ", b)
+		print("temp [k]= ", temp)
+		print("lux = ", lux)
+
+		# Publish to topic 
+		
+		# TODO: add other things to header
+		msg_light_sensor.header.stamp = rospy.Time.now()
+		msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
+
+		msg_light_sensor.r = r
+		msg_light_sensor.g = g
+		msg_light_sensor.b = b
+		msg_light_sensor.lux = lux
+		msg_light_sensor.temp = temp
+		self.sensor_pub.publish(msg_light_sensor)
+
+		#rate.sleep()
+	
+	def getFilePath(self, name):
+		return get_duckiefleet_root() + 'calibrations/light-sensor/' + name + ".yaml"
+    
+	def readParamFromFile(self):
+		#Check file existance
+		fname = self.getFilePath(self.veh_name)
+		# Use default.yaml if file doesn't exsit
+		if not os.path.isfile(fname):
+			rospy.logwarn("[%s] %s does not exist. Using default.yaml." %(self.node_name,fname))
+			fname = self.getFilePath("default")
+
+		with open(fname, 'r') as in_file:
+			try:
+				yaml_dict = yaml.load(in_file)
+			except yaml.YAMLError as exc:
+				rospy.logfatal("[%s] YAML syntax error. File: %s fname. Exc: %s" %(self.node_name, fname, exc))
+				rospy.signal_shutdown()
+				return
+
+        # Set parameters using value in yaml file
+		if yaml_dict is None:
+        	# Empty yaml file
+			return
+        
+		param_value = yaml_dict.get(param_name)
+		if param_name is not None:
+			rospy.set_param("~"+param_name, param_value)
+		else:
+			# Skip if not defined, use default value instead.
+			pass
+
+	def setup_parameter(self, param_name, default_value):
+		value = rospy.get_param(param_name, default_value)
+    	# Write to parameter server for transparency
+		rospy.set_param(param_name, value)
+		rospy.loginfo("[%s] %s = %s " % (self.node_name, param_name, value))
+		return value
+
+if __name__ == '__main__':
+	rospy.init_node('light_sensor_node', anonymous=False)
+	light_sensor_node = LightSensorNode()
+	rospy.spin()
