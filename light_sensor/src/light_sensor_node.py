@@ -32,7 +32,7 @@ import os.path
 from duckietown_utils import get_duckiefleet_root
 
 
-class LightSensorNode(object):
+class LightSensor(object):
 
 	def __init__(self):
 		#Get node name and vehicle name
@@ -56,15 +56,17 @@ class LightSensorNode(object):
 		#Set parameter
 		self.readParamFromFile()
 		#Set local gain using yam
-		self.gain = self.setup_parameter("gain", 0.5)
+		self.gain = self.setup_parameter("~gain", 0.6)
 
 		#ROS-Publications
 		self.msg_light_sensor = LightSensorM()
-		self.get_lux(self.msg_light_sensor)
 		self.sensor_pub = rospy.Publisher('~sensor_data', LightSensorM, queue_size=1)
-		
+		rate = rospy.Rate(1)
+		while not rospy.is_shutdown():
+			self.get_lux()
+			rate.sleep()
 
-	def get_lux(self, msg_light_sensor):
+	def get_lux(self):
 		
 		count = 0
 		lux = 0
@@ -80,34 +82,35 @@ class LightSensorNode(object):
 		# Calulate color temp
 		temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
 		#Calculate lux and multiply it with gain
-		lux = Adafruit_TCS34725.calculate_lux(r, g, b)
-
+		lux = self.gain * Adafruit_TCS34725.calculate_lux(r, g, b)
+		
 
 		# Calculate lux out of RGB measurements.
 		print("r = ", r)
 		print("g = ", g)
 		print("b = ", b)
+		print(self.gain)
 		print("temp [k]= ", temp)
 		print("lux = ", lux)
 
 		# Publish to topic 
 		
 		# TODO: add other things to header
-		msg_light_sensor.header.stamp = rospy.Time.now()
-		msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
+		self.msg_light_sensor.header.stamp = rospy.Time.now()
+		self.msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
 
 
-		msg_light_sensor.r = r
-		msg_light_sensor.g = g
-		msg_light_sensor.b = b
-		msg_light_sensor.lux = lux
-		msg_light_sensor.temp = temp
-		self.sensor_pub.publish(msg_light_sensor)
+		self.msg_light_sensor.r = r
+		self.msg_light_sensor.g = g
+		self.msg_light_sensor.b = b
+		self.msg_light_sensor.lux = lux
+		self.msg_light_sensor.temp = temp
+		self.sensor_pub.publish(self.msg_light_sensor)
 
 		#rate.sleep()
 	
 	def getFilePath(self, name):
-		return (get_duckiefleet_root()+'/calibrations/light-sensor/' + name + ".yaml")
+		return ('/data/config/calibrations/light-sensor/' + name + ".yaml")
     
 	def readParamFromFile(self):
 		#Check file existance
@@ -129,13 +132,13 @@ class LightSensorNode(object):
 		if yaml_dict is None:
         	# Empty yaml file
 			return
-		param_name = "gain"
-		param_value = yaml_dict.get(param_name)
-		if param_name is not None:
-			rospy.set_param("~"+param_name, param_value)
-		else:
-			# Skip if not defined, use default value instead.
-			pass
+		for param_name in ["gain"]:
+			param_value = yaml_dict.get(param_name)
+			if param_name is not None:
+				rospy.set_param("~"+param_name, param_value)
+			else:
+				# Skip if not defined, use default value instead.
+				pass
 
 	def setup_parameter(self, param_name, default_value):
 		value = rospy.get_param(param_name, default_value)
@@ -146,5 +149,5 @@ class LightSensorNode(object):
 
 if __name__ == '__main__':
 	rospy.init_node('light_sensor_node', anonymous=False)
-	light_sensor_node = LightSensorNode()
+	light_sensor_node = LightSensor()
 	rospy.spin()

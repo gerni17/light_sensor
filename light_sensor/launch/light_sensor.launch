@@ -3,7 +3,8 @@
 	<arg name="veh"/>
 
 	<group ns="$(arg veh)">
-		<node name="light_sensor_node" pkg="light_sensor" type="light_sensor_node.py" output="screen" clear_params="true" required="true"/>
+		<node name="light_sensor_node" pkg="light_sensor" type="light_sensor_node.py" output="screen" clear_params="true" required="true">
+		</node>
 		
 	</group>
 </launch>
