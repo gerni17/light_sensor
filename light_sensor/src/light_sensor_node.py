@@ -6,19 +6,6 @@ Plugins on raspberry pi: o o 1 o o
                          
 Plugins on tcs34725:     o 1 2 4 3 o 5
 
-run with python3 light_sensor.py
-
-Troubleshooting:
-if no package imported try: 'pip3 install Adafruit_TCS34725'
-
-
-Adjusts the gain on the TCS34725 (adjusts the sensitivity to light).
-Use one of the following constants:
- - TCS34725_GAIN_1X   = No gain
- - TCS34725_GAIN_4X   = 2x gain
- - TCS34725_GAIN_16X  = 16x gain
- - TCS34725_GAIN_60X  = 60x gain
-
 """
 import rospy
 from light_sensor.msg import LightSensorM 
@@ -51,17 +38,18 @@ class LightSensor(object):
 		#Set integrationtime and gain
 		self.tcs = Adafruit_TCS34725.TCS34725( \
 				integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_700MS, \
-				gain=Adafruit_TCS34725.TCS34725_GAIN_1X)
+				gain=Adafruit_TCS34725.TCS34725_GAIN_60X)
 
 		#Set parameter
 		self.readParamFromFile()
 		#Set local gain using yam
-		self.gain = self.setup_parameter("~gain", 0.6)
+		self.gainr = self.setup_parameter("~gainr", 0.01)
+		self.gain = self.setup_parameter("~gain", 0.8)
 
 		#ROS-Publications
 		self.msg_light_sensor = LightSensorM()
 		self.sensor_pub = rospy.Publisher('~sensor_data', LightSensorM, queue_size=1)
-		rate = rospy.Rate(1)
+		rate = rospy.Rate(10)
 		while not rospy.is_shutdown():
 			self.get_lux()
 			rate.sleep()
@@ -84,14 +72,15 @@ class LightSensor(object):
 		#Calculate lux and multiply it with gain
 		lux = self.gain * Adafruit_TCS34725.calculate_lux(r, g, b)
 		
+		real_lux= self.gainr * Adafruit_TCS34725.calculate_lux(r,g,b)
 
 		# Calculate lux out of RGB measurements.
-		print("r = ", r)
-		print("g = ", g)
-		print("b = ", b)
+		print("Gains: ")
 		print(self.gain)
+		print(self.gainr)
 		print("temp [k]= ", temp)
 		print("lux = ", lux)
+		print("real_lux: ", real_lux)
 
 		# Publish to topic 
 		
@@ -100,9 +89,8 @@ class LightSensor(object):
 		self.msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
 
 
-		self.msg_light_sensor.r = r
-		self.msg_light_sensor.g = g
-		self.msg_light_sensor.b = b
+
+		self.msg_light_sensor.real_lux = real_lux
 		self.msg_light_sensor.lux = lux
 		self.msg_light_sensor.temp = temp
 		self.sensor_pub.publish(self.msg_light_sensor)
@@ -132,7 +120,7 @@ class LightSensor(object):
 		if yaml_dict is None:
         	# Empty yaml file
 			return
-		for param_name in ["gain"]:
+		for param_name in ["gainr", "gain"]:
 			param_value = yaml_dict.get(param_name)
 			if param_name is not None:
 				rospy.set_param("~"+param_name, param_value)
