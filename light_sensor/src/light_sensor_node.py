@@ -38,14 +38,16 @@ class LightSensor(object):
 		#Set integrationtime and gain
 		self.tcs = Adafruit_TCS34725.TCS34725( \
 				integration_time=Adafruit_TCS34725.TCS34725_INTEGRATIONTIME_700MS, \
-				gain=Adafruit_TCS34725.TCS34725_GAIN_60X)
+				gain=Adafruit_TCS34725.TCS34725_GAIN_1X)
 
 		#Set parameter
 		self.readParamFromFile()
 		#Set local gain using yam
-		self.gainr = self.setup_parameter("~gainr", 0.01)
-		self.gain = self.setup_parameter("~gain", 0.8)
-
+		self.gain = self.setup_parameter("~gain", 24)
+		self.gainr = self.setup_parameter("~gainr", 0.5)
+		self.mult = self.setup_parameter("~mult",1)
+		self.offset = self.setup_parameter("~offset", 1)
+		
 		#ROS-Publications
 		self.msg_light_sensor = LightSensorM()
 		self.sensor_pub = rospy.Publisher('~sensor_data', LightSensorM, queue_size=1)
@@ -71,17 +73,19 @@ class LightSensor(object):
 		temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
 		#Calculate lux and multiply it with gain
 		lux = self.gain * Adafruit_TCS34725.calculate_lux(r, g, b)
-		
+		lux_ohne = Adafruit_TCS34725.calculate_lux(r, g, b)
 		real_lux= self.gainr * Adafruit_TCS34725.calculate_lux(r,g,b)
-
+		new_lux= self.mult * lux_ohne + self.offset
 		# Calculate lux out of RGB measurements.
-		print("Gains: ")
-		print(self.gain)
-		print(self.gainr)
 		print("temp [k]= ", temp)
+		print("r :", r)
+		print("g :", g)
+		print("b :", b)
+		print("c :", c)
+		print("lux_raw = ", lux_ohne)
 		print("lux = ", lux)
 		print("real_lux: ", real_lux)
-
+		print("new_lux: ",new_lux)
 		# Publish to topic 
 		
 		# TODO: add other things to header
@@ -120,7 +124,7 @@ class LightSensor(object):
 		if yaml_dict is None:
         	# Empty yaml file
 			return
-		for param_name in ["gainr", "gain"]:
+		for param_name in ["gainr", "gain", "mult", "offset"]:
 			param_value = yaml_dict.get(param_name)
 			if param_name is not None:
 				rospy.set_param("~"+param_name, param_value)
