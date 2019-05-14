@@ -2,7 +2,7 @@
 
 ### Running publisher
 ```bash
-docker -H hostname.local run -it --rm --net host --privileged --name light-sensor surirohit/light-sensor
+docker -H watchtower10.local run -it  --rm --net host --privileged --name light-sensor -v /data:/data gian1717/sensor:p2
 ```
 
 ### Running subscriber
