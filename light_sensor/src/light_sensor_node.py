@@ -43,8 +43,6 @@ class LightSensor(object):
 		#Set parameter
 		self.readParamFromFile()
 		#Set local gain using yam
-		self.gain = self.setup_parameter("~gain", 24)
-		self.gainr = self.setup_parameter("~gainr", 0.5)
 		self.mult = self.setup_parameter("~mult",1)
 		self.offset = self.setup_parameter("~offset", 1)
 		
@@ -57,35 +55,22 @@ class LightSensor(object):
 			rate.sleep()
 
 	def get_lux(self):
-		
-		count = 0
-		lux = 0
-		color_temp = 0
-
-		#rate = rospy.Rate(10) # 10hz
-
-	
-		count = count + 1
-
 		# Read R, G, B, C color data from the sensor.
 		r, g, b, c = self.tcs.get_raw_data()
 		# Calulate color temp
 		temp = Adafruit_TCS34725.calculate_color_temperature(r, g, b)
 		#Calculate lux and multiply it with gain
-		lux = self.gain * Adafruit_TCS34725.calculate_lux(r, g, b)
-		lux_ohne = Adafruit_TCS34725.calculate_lux(r, g, b)
-		real_lux= self.gainr * Adafruit_TCS34725.calculate_lux(r,g,b)
-		new_lux= self.mult * lux_ohne + self.offset
+		lux = Adafruit_TCS34725.calculate_lux(r, g, b)
+		real_lux= self.mult * lux + self.offset
 		# Calculate lux out of RGB measurements.
 		print("temp [k]= ", temp)
 		print("r :", r)
 		print("g :", g)
 		print("b :", b)
 		print("c :", c)
-		print("lux_raw = ", lux_ohne)
 		print("lux = ", lux)
 		print("real_lux: ", real_lux)
-		print("new_lux: ",new_lux)
+
 		# Publish to topic 
 		
 		# TODO: add other things to header
@@ -93,7 +78,10 @@ class LightSensor(object):
 		self.msg_light_sensor.header.frame_id = rospy.get_namespace()[1:-1] # splicing to remove /
 
 
-
+		self.msg_light_sensor.r = r
+		self.msg_light_sensor.g = g
+		self.msg_light_sensor.b = b
+		self.msg_light_sensor.c = c
 		self.msg_light_sensor.real_lux = real_lux
 		self.msg_light_sensor.lux = lux
 		self.msg_light_sensor.temp = temp
@@ -124,7 +112,7 @@ class LightSensor(object):
 		if yaml_dict is None:
         	# Empty yaml file
 			return
-		for param_name in ["gainr", "gain", "mult", "offset"]:
+		for param_name in ["mult", "offset"]:
 			param_value = yaml_dict.get(param_name)
 			if param_name is not None:
 				rospy.set_param("~"+param_name, param_value)
